@@ -39,7 +39,6 @@ def _print(results, epoch, step, speed):
     sys.stdout.write(log_str)
     sys.stdout.flush()
 
-
 def init_visualizations(sess, model, batch_size, path, hps=None):
     """
     Randomly sampling during training
@@ -88,7 +87,6 @@ def init_visualizations(sess, model, batch_size, path, hps=None):
             x_samples.append(x_sample)
         return np.concatenate(x_samples, axis=0)
     return draw_samples
-
 
 def train(model, dataloader, sess, hps):
     train_iterator = dataloader(hps.batch_size * hps.num_gpus, mode="train")
@@ -205,7 +203,6 @@ def train(model, dataloader, sess, hps):
     train_logger.close()
     test_logger.close()
 
-
 def infer(model, dataloader, sess, hps):
     iterator = dataloader(hps.batch_size * hps.num_gpus, mode="test")
     x, labels = dataloader.get_element("images", "labels")
@@ -228,17 +225,25 @@ def infer(model, dataloader, sess, hps):
     np.save(os.path.join(hps.results_dir, "latent.npy"), z)
     return zs
 
-
 def main(hps):
+    # num_gpus：GPU的数目
+    # seed：随机数 默认为199512
+    # batch_size：每个batchsize的大小
     tf.set_random_seed(hps.seed + hps.num_gpus * hps.batch_size)
     np.random.seed(hps.seed + hps.num_gpus * hps.batch_size)
     if hps.problem == "imagenet32x32" or hps.problem == "imagenet64x64":
+        # import_module:???
         dataloader = import_module("datasets.imagenet").DataLoader(path=hps.data_dir,
                                                                    threads_fmap=hps.threads_fmap,
                                                                    threads_dmap=hps.threads_dmap,
                                                                    buffer_size=hps.buffer_size,
                                                                    image_size=hps.problem.split('x')[-1])
     else:
+        # problem：使用图片数据集图片的大小 （mnist/cifar10/celeba/imagenet32x32/imagenet64x64/lsun）
+        # data_dir：tfrecord数据的存放目录
+        # threads_fmap：并行文件读取的线程数
+        # threads_dmap：并行数据集映射的线程数
+        # buffer_size：tf.data.daset缓冲区的大小
         dataloader = import_module("datasets." + hps.problem).DataLoader(path=hps.data_dir,
                                                                          threads_fmap=hps.threads_fmap,
                                                                          threads_dmap=hps.threads_dmap,
@@ -246,19 +251,21 @@ def main(hps):
     hps.num_classes = dataloader.num_classes
     model = Model(hps)
 
-    # Create tensorflow session
+    # 创建 TensorFlow 会话
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
+    # 自动增大至GPU的最大内存
     sess = tf.Session(config=config)
     if hps.debug:
+        # debug：tf.Session()的调试模式
         from tensorflow.python import debug as tf_debug
         sess = tf_debug.LocalCLIDebugWrapperSession(sess)
 
     if not hps.inference:
+        # inference：切换成推理模式
         train(model, dataloader, sess, hps)
     else:
         infer(model, dataloader, sess, hps)
-
 
 def get_arguments():
     parser = argparse.ArgumentParser()
@@ -353,7 +360,6 @@ def get_arguments():
                         help="Weight of log p(y|x) in weighted loss")
 
     return parser.parse_args()
-
 
 if __name__ == "__main__":
     main(hps=get_arguments())

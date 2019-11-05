@@ -10,7 +10,7 @@ from layers import revnet2d, split2d, split2d_reverse, prior
 
 def codec(inputs, objective, hps, reverse, cond, eps=None, reuse=None):
     """
-    Multi-scale architecture
+    Multi-scale architecture 多尺度架构
     """
     levels = range(hps.num_levels) if not reverse else reversed(range(hps.num_levels))
     epsilons = []
@@ -42,12 +42,14 @@ class Model(object):
         self.lr = tf.placeholder(tf.float32, None, name='learning_rate')
 
     def encode(self, inputs, labels, condition=None):
-        ## Dequantization by adding uniform noise
+        ## Dequantization by adding uniform noise 加入均匀噪声来反量化
         with tf.variable_scope("preprocess"):
             self.y = tf.one_hot(labels, depth=self.num_classes, dtype=tf.float32)
 
             inputs = tf.cast(inputs, 'float32')
+            # tf.cast()数据类型转换
             self.height, self.width, self.channels = inputs.get_shape().as_list()[1:]
+            # 去shape的2,3,4位赋值给height、width、channels
             if self.hps.num_bits_x < 8:
                 inputs = tf.floor(inputs/2**(8-self.hps.num_bits_x))
             inputs = inputs / self.num_bins - 0.5
@@ -56,16 +58,17 @@ class Model(object):
             objective = tf.zeros(tf.shape(inputs)[0])
 
             objective += -np.log(self.num_bins) * np.prod(ops.shape(inputs)[1:])
+            # np.prod 计算所有元素的乘积
             inputs = squeeze2d(inputs)
 
-        ## Encoder
+        ## Encoder 编码
         if self.hps.conditioning and condition is None:
             condition = self.y
             # with tf.variable_scope("cond_preprocess"):
             #     condition = tf.layers.dense(condition, units=10, use_bias=False)
         z, objective, eps = codec(inputs, cond=condition, objective=objective, hps=self.hps, reverse=False)
 
-        ## Prior
+        ## Prior 先验
         with tf.variable_scope("prior"):
             self.hps.top_shape = z.get_shape().as_list()[1:]
             logp, sample, get_eps = prior(self.y, self.hps)
@@ -82,12 +85,12 @@ class Model(object):
 
     def decode(self, labels=None, condition=None, epsilon=None):
         """
-        Args:
-            labels: Class label, could be none
-            condition: 2D or 4D tensor, condition for dynamic linear transformation
+        参数列表:
+            标签: Class label, could be none
+            条件参数: 2D or 4D tensor, condition for dynamic linear transformation
             epsilon: None or list. If specified, it should be a list with `num_levels` elements
 
-        Returns:
+        返回值:
             x: 4D tensor, generated samples
         """
         with tf.variable_scope("prior", reuse=tf.AUTO_REUSE):
