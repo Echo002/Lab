@@ -94,10 +94,15 @@ for i in range(level):
         inner_layers[2].append(split)
         inner_layers[3].append(couple)
         inner_layers[4].append(concat)
+        # 缩放平移变换
         x = actnorm(x)
+        # 排列层 重新排列最后一个维度的数据
         x = permute(x)
+        # 将输入分区沿着最后一个轴为切分为若干部分
         x1, x2 = split(x)
+        # 仿射耦合层
         x1, x2 = couple([x1, x2])
+        # 把最后一个轴拼接起来
         x = concat([x1, x2])
     if i < level-1:
         split = Split()
@@ -164,7 +169,8 @@ for i,(split,condactnorm,reshape) in enumerate(zip(*outer_layers)[::-1]):
 decoder = Model(x_in, x)
 
 def sample(path, std=1):
-    """采样查看生成效果（generate samples per epoch）
+    """
+    采样查看生成效果（generate samples per epoch）
     """
     n = 9
     figure = np.zeros((img_size * n, img_size * n, 3))

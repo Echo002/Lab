@@ -214,12 +214,10 @@ class CoupleWrapper:
         return lambda inputs: self(inputs, 1)
 
 class Actnorm(Layer):
-    """缩放平移变换层（Scale and shift）
     """
-    def __init__(self,
-                 isinverse=False,
-                 use_shift=True,
-                 **kwargs):
+    缩放平移变换层（Scale and shift）
+    """
+    def __init__(self, isinverse=False, use_shift=True, **kwargs):
         super(Actnorm, self).__init__(**kwargs)
         self.log_scale = None
         self.shift = None
@@ -332,6 +330,7 @@ class Reshape(Layer):
 class Squeeze(Layer):
     # shape=[h, w, c] ==> shape=[h/n, w/n, n*n*c]
     def __init__(self, factor=2, **kwargs):
+        # python3 可以直接使用super().__init__(**kwargs)代替
         super(Squeeze, self).__init__(**kwargs)
         self.factor = factor
     def call(self, inputs):
